@@ -7,6 +7,7 @@ import { get } from 'svelte/store';
 import rewind from '@mapbox/geojson-rewind';
 import { geoContains } from 'd3-geo';
 import DOMPurify from 'dompurify';
+import { parseISO, isThisYear, isAfter, subDays, format, formatDistanceToNow } from 'date-fns';
 
 export const errToast = (m: string) => {
 	toast.push(m, {
@@ -203,4 +204,21 @@ export const formatOpeningHours = (str: string): string => {
 		.join('');
 
 	return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['span'] });
+};
+
+export const formatVerifiedHuman = (iso?: string) => {
+	if (!iso) return '';
+	let d: Date;
+	try {
+		d = parseISO(iso);
+		if (Number.isNaN(d.getTime())) return iso; // fallback
+	} catch {
+		return iso;
+	}
+	// ≤30 days
+	if (isAfter(d, subDays(new Date(), 30))) return formatDistanceToNow(d, { addSuffix: true });
+	// same year → "16 April"
+	if (isThisYear(d)) return format(d, 'd MMMM');
+	// otherwise → "16 April 2024"
+	return format(d, 'd MMMM yyyy');
 };
